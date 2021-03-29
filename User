@@ -1,0 +1,41 @@
+package tcp;
+ 
+import java.io.DataOutputStream;
+import java.net.Socket;
+import java.util.HashMap;
+import java.util.Iterator;
+ 
+public class User {
+    
+    HashMap<String,DataOutputStream> clientmap = new HashMap<String,DataOutputStream>();    //채팅방의 사용자 관리 위한 Hashmap,
+    //Key와 value 를 묶어 하나의 entry로 저장한다는 특징 hashing을 사용하기 때문에 많은양의 데이터를 검색하는데 뛰어난 성능 key값은 중복불가, value에 null 값 사용가능
+
+    public synchronized void AddClient(String name,Socket socket)            //채팅방 사용자 추가 및
+    {                                                                        //채팅방에 남아있는 사용자에게 접속 소식을 알립니다.
+        try {
+            sendMsg(name+" 입장하셨습니다.","Server");
+            clientmap.put(name, new DataOutputStream(socket.getOutputStream()));//해시맵에 사용자이름, 클라이언트의 데이터를 넣습니다
+            System.out.println("채팅 참여 인원 : "+clientmap.size()); //해시맵의 크기가 커져서 인원이 증가합니다.
+        }catch(Exception e){}
+    }
+    public synchronized void RemoveClient(String name)  //채팅방 사용자 제거 및 채팅방에 존재하는 Client에게 퇴장 소식을 알림
+    {
+        try  {
+            clientmap.remove(name);  //해시맵에 이름을 제거해서 사이즈를 감소시켜 인원이 감소합니다.
+            sendMsg(name + " 퇴장하셨습니다.", "Server");
+            System.out.println("채팅 참여 인원 : "+clientmap.size());
+        }catch(Exception e) {}
+    }
+ 
+    public synchronized void sendMsg(String msg, String name)throws Exception //채팅방에 있는 사용자에게 메세지를 전송  스레드간 동기화를위해 synchronized 사용
+    {
+        Iterator iterator = clientmap.keySet().iterator();//HashMap에 저장된 모든 키가 저장된 Set을 반환한다. 
+        //iterator 컬렉션에 저장되어 있는 요소들을 읽어오는 방법
+        while(iterator.hasNext())//hasnext는 boolean 자료형 타입으로 반환됩니다. next()는 매개변수혹은 iterator되는 타입으로 반환 됩니다. 데이터가 비어있을수있기때문에 hasnext
+        {
+            String clientname =(String)iterator.next(); //String형으로 반환
+            clientmap.get(clientname).writeUTF(name + ":" + msg); //이름과 메시지 내용을 utf형으로 쓴다.
+        }
+        
+    }
+}
