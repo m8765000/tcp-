@@ -1,0 +1,46 @@
+package tcp;
+ 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.util.Scanner;
+ 
+public class Receiver implements Runnable{
+     
+    Socket socket; //소켓과 연결하기 위해 소켓생성
+    DataInputStream in; //데이터를 입력받기위해서 인풋 스트림
+    String name; //닉네임을 생성하기위해서 생성
+    User user = new User(); //채팅방 참여추가를 위한 유저
+    Mariadb data = new Mariadb(); //로그에 이름과 메시지를 넣기위한 마리아 디비
+    
+    public Receiver(User user,Socket socket) throws Exception
+    {
+        this.user = user; //유저와 소켓을 불러옴
+        this.socket = socket;
+        //접속한 Client로부터 데이터를 읽어들이기 위한 DataInputStream 생성
+        in = new DataInputStream(socket.getInputStream());
+        //최초 사용자로부터 닉네임을 읽어들임
+        this.name = in.readUTF();
+        //사용자 추가해줍니다.
+        user.AddClient(name, socket);
+    }
+    public void run()
+    {
+        try
+        {
+            //Receiver는 사용자로부터 넘어오는 데이터를 읽어와 채팅방에 있는 사용자들에게 전송하는 것을 반복합니다.
+            while(true)
+            {
+                String msg = in.readUTF(); //메시지를 utf형으로 읽음 스캐너처럼 사용됨
+                user.sendMsg(msg , name); //이름과 메시지를 보냄
+                data.insert(name, msg); //데이터베이스 insert에 이름과 메시지를 보냄 로그생성
+            }
+        }catch(Exception e) {
+            //Exception이 발생했다는 건 사용자가 접속을 끊었다는 의미입니다. 채팅방에서 사용자를 제거합니다.
+            user.RemoveClient(this.name);
+        }        
+    }
+}
