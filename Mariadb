@@ -1,0 +1,96 @@
+package tcp;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class Mariadb {
+
+	PreparedStatement pstmt; //	statement를 상속받는 인터페이스로 SQL구문을 실행시키는 기능을 갖는 객체 객체를 캐시에 담아 재사용 반복적으로 사용한다면 statement에 비해 성능이 좋음
+	private Connection con;  // 연결
+	private ResultSet rs; 	//결과
+	String dbURL = "jdbc:mysql://localhost:3306/test?characterEncoding=UTF-8&serverTimezone=UTC";  //주소
+	String dbID = "root";	//아이디
+	String dbPwd = "root";	//비번
+	
+	public void connect() {
+		try {
+			String driver = "org.mariadb.jdbc.Driver";	//마리아디비 드라이버
+			String url = "jdbc:mariadb://localhost:3306/test";//주소
+			String UID = "root";//아이디
+			String uPwd = "root";//비번
+			Class.forName(driver);//드라이버 로드
+			con = DriverManager.getConnection(url, UID, uPwd);//주소, 아이디,비번 받아서 연결
+
+		} catch (
+
+		Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace(); // 에러 메시지의 발생 근원지를 찾아서 단계별로 에러를 출력한다.
+		}
+	}
+
+	public void insert(String ID, String message) {
+		try {
+			String Insert_SQL = "insert into log values(?,?)"; // insert into 테이블이름 아이디, 대화 삽입
+			connect(); //연결
+			pstmt = con.prepareStatement(Insert_SQL); //Select_SQL문 실행
+			pstmt.setString(1, ID); //set을 사용하여 values(?)에 값을 집어 넣음
+			pstmt.setString(2, message);//2번째 (?)에값을 넣음
+			rs = pstmt.executeQuery(); //excutequery는 resultset을 만드는 sql문 주로 select문을 수행할때 사용 update는 insert나 update같은 ddl dml을 실행할때 사용
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public void select() { //로그 출력
+	    try {
+	  	  String Select_SQL= "select ID, message from log"; // 닉네임의 이름, 대화내용을 출력
+	  	  String id = null;	//로그에서 ID 값을 받아옴
+	  	  connect();
+	  	  pstmt = con.prepareStatement(Select_SQL);
+	  	  rs = pstmt.executeQuery();//sql문을 사용했을때 결과물
+	  	  System.out.println("이름 \t 채팅내용\n==============================================\n");
+	  	  while(rs.next()) {//값이 널일떄까지 불러옴 
+	  		  id = rs.getString("ID"); 
+	  		  String message = rs.getString("message"); //talk은 메시지를 받아옴
+	  		 System.out.println(id+"\t"+"\t"+message+"\n");
+	  	  }
+	  	  if(id==null) { //아이디가 비었으면 로그가 비었음
+	  		 System.out.println("데이터베이스안에 정보가 없습니다.");
+	  	  }
+	    	}
+	    	catch(SQLException e) {  
+	    		e.printStackTrace();
+	    	}
+	 }
+	public void delete() {// 로그 삭제
+		try {
+			String delete_SQL = "delete from log "; //로그 테이블의 내용삭제
+			connect();
+			pstmt = con.prepareStatement(delete_SQL); 
+			pstmt.executeUpdate(); //실행한 결과의 인트값을 불러오기 위해 사용
+			System.out.println("로그 삭제 완료\n");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public void end() { // db종료 -> 자원누수 이유 자원누수는 나중에 찾기가 어려운 결함 
+		try {
+			if (con != null) { //연결이 끊기면 닫음
+				con.close();
+			}
+			if (pstmt != null) { 
+				pstmt.close();
+			}
+			if (rs != null) {
+				rs.close();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+}
